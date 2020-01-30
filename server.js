@@ -19,7 +19,7 @@ app.get('/', (request, response) => {
   response.send(`It's alllllive!`);
 });
 
-// app.get('/location', locationHandler);
+app.get('/location', locationCallback);
 app.get('/movies', movieHandler);
 // app.get('/weather', weatherHandler);
 // app.get('/events', eventfulHandler);
@@ -28,81 +28,68 @@ app.get('/movies', movieHandler);
 //callback functions
 
 
-function locationHandler(request, response) {
+function locationCallback (request, response) {
   let city = request.query.city;
-  console.log(request.query);
-  let SQL = `SELECT * FROM explorer WHERE city='${city}';`;
-  console.log('this is my SQL', SQL);
+  let SQL = `SELECT * FROM locations WHERE searchquery='${city}';`;
+
   client.query(SQL)
     .then(results => {
-      if (results.rows.length > 0) {
+      if (results.rows.length > 0){
         response.send(results.rows[0]);
       } else {
         try {
           let key = process.env.GEOCODE_API_KEY;
-          const url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
+          let url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
+
           superagent.get(url)
-            .then(data => {
+            .then( data => {
               const geoData = data.body[0];
               const location = new Location(city, geoData);
-              const {search_query, formatted_query, latitude, longitude} = location;
-              let apiToSql = `INSERT INTO explorer (city, formattedquery, lat, long) VALUES ('${search_query}','${formatted_query}','${latitude}','${longitude}');`;
-              client.query(apiToSql);
+              let {search_query, formatted_query, latitude, longitude} = location;
+              let apiToSQL = `INSERT INTO locations (searchquery, formattedquery, latitude, longitude) VALUES ('${search_query}','${formatted_query}', '${latitude}', '${longitude}')`;
+              client.query(apiToSQL);
               response.send(location);
             })
-            .catch(() => {
-              errorHandler('not today satan.', request, response);
+            .catch( () => {
+              errorHandler('location broke', request, response);
             });
-        } catch (error) {
-          errorHandler(error, request, response);
+        }
+        catch(error){
+          errorHandler('Error 500! Something has gone wrong with the website server!', request, response);
         }
       }
     });
 }
 
 function movieHandler(request, response) {
-  // let latitude = request.query.latitude;
-  // let longitude = request.query.longitude;
-  const url = `https://api.themoviedb.org/3/movie/550?api_key=${process.env.MOVIE_API_KEY}`;
+  // let movieObject;
+  const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&query=seattle`;
   try {
     superagent.get(url)
       .then(data => {
-        console.log(data);
-        // const weatherSummaries = data.body.daily.data.map(day => {
-        //   return new Weather(day);
+        const movieObject = data.body.results.map( obj => new Movie(obj) );
+        response.send(movieObject);
       });
-    // response.status(200).json(weatherSummaries);
-    // })
-
-  }
-  catch(error) {
+  } catch(error) {
     errorHandler(error, request, response);
   }
 }
 
-// let explorerQuery =
-
-// `SELECT * FROM explorer WHERE city=${city};`
-//       };
-// } else {
-
-
-
-// function weatherHandler(request, response) {
-//   let latitude = request.query.latitude;
-//   let longitude = request.query.longitude;
-//   const url = `https://api.darksky.net/forecast/${process.env.DARKSKY_API_KEY}/${latitude},${longitude}`;
-//   superagent.get(url)
-//     .then(data => {
-//       const weatherSummaries = data.body.daily.data.map(day => {
-//         return new Weather(day);
-//       });
-//       response.status(200).json(weatherSummaries);
-//     })
-//     .catch(() => {
-//       errorHandler('not today satan.', request, response);
-//     });
-// }
+function weatherHandler(request, response) {
+  let latitude = request.query.latitude;
+  let longitude = request.query.longitude;
+  const url = `https://api.darksky.net/forecast/${process.env.DARKSKY_API_KEY}/${latitude},${longitude}`;
+  superagent.get(url)
+    .then(data => {
+      const weatherSummaries = data.body.daily.data.map(day => {
+        return new Weather(day);
+      });
+      response.send(weatherSummaries);
+    })
+    .catch(() => {
+      errorHandler('not today satan.', request, response);
+    });
+}
 
 
 // function eventfulHandler(request, response) {
@@ -118,13 +105,10 @@ function movieHandler(request, response) {
 //     });
 // }
 
-//destructuring: CHECK LINE 68* After looking at the results of request.query.______, take the result keys and create a line where you open an object {}, and fill it with needed key(s), equals out to request.query; THANKS LENA!
-
-
-//constructors
-function Location(city, geoData) {
-  this.search_query = city;
-  this.formatted_query = geoData.display_name;
+// CONSTRUCTORS
+function Location(city, geoData){
+  this.searchQuery = city;
+  this.formattedQuery = geoData.display_name;
   this.latitude = geoData.lat;
   this.longitude = geoData.lon;
 }
@@ -141,6 +125,15 @@ function Event(object) {
   this.summary = object.description;
 }
 
+function Movie (movieData){
+  this.title = movieData.original_title;
+  this.overview = movieData.overview;
+  this.average_votes = movieData.vote_average;
+  this.total_votes = movieData.vote_count;
+  this.image_url = `https://image.tmdb.org/t/p/w500${movieData.poster_path}`;
+  this.popularity = movieData.popularity;
+  this.released_on = movieData.release_date;
+}
 
 //helper functions (error catching)
 function errorHandler(error, request, response) {

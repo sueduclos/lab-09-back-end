@@ -1,16 +1,14 @@
 # lab-08-back-end
 
-Number and name of feature: ________________________________
-Use SQL to build database, get information from DB or add to DB.
-
+Number and name of feature: #1 Movies
 
 Estimate of time needed to complete: 1 hour 
 
-Start time:7:03pm 
+Start time: 7:03pm 
 
-Finish time: 
+Finish time: 9:21pm 
 
-Actual time needed to complete: 
+Actual time needed to complete: 2 hours 18 minutes
 
 # back_end_testing
 **Author**: 
