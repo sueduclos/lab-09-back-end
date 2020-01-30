@@ -19,16 +19,8 @@ app.get('/', (request, response) => {
   response.send(`It's alllllive!`);
 });
 
-
-//Xrun npm init
-//Xrun npm install w/ express, cors, superagent
-
-//list out routes...
 // app.get('/location', locationHandler);
-
-
-app.get('/location', locationHandler);
-
+app.get('/movies', movieHandler);
 // app.get('/weather', weatherHandler);
 // app.get('/events', eventfulHandler);
 
@@ -68,7 +60,25 @@ function locationHandler(request, response) {
     });
 }
 
+function movieHandler(request, response) {
+  // let latitude = request.query.latitude;
+  // let longitude = request.query.longitude;
+  const url = `https://api.themoviedb.org/3/movie/550?api_key=${process.env.MOVIE_API_KEY}`;
+  try {
+    superagent.get(url)
+      .then(data => {
+        console.log(data);
+        // const weatherSummaries = data.body.daily.data.map(day => {
+        //   return new Weather(day);
+      });
+    // response.status(200).json(weatherSummaries);
+    // })
 
+  }
+  catch(error) {
+    errorHandler(error, request, response);
+  }
+}
 
 // let explorerQuery =
 
@@ -141,5 +151,5 @@ function errorHandler(error, request, response) {
 //server "listener"
 client.connect()
   .then(() => {
-    app.listen(PORT, () => console.log(`Server up on port ${PORT}`))
+    app.listen(PORT, () => console.log(`Server up on port ${PORT}`));
   });
