@@ -2,11 +2,11 @@
 
 require('dotenv').config();
 
+// ======================== PACKAGES =========================
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
 const pg = require('pg');
-
 
 const PORT = process.env.PORT;
 const app = express();
@@ -15,9 +15,14 @@ app.use(cors());
 const client = new pg.Client(process.env.DATABASE_URL);
 client.on('error', err => console.error(err));
 
+
+// ======================== ROUTES ============================
+
 app.get('/', (request, response) => {
   response.send(`It's alllllive!`);
 });
+
+const location = require('./modules/Location.js');
 
 app.get('/location', locationCallback);
 app.get('/movies', movieHandler);
@@ -26,40 +31,13 @@ app.get('/yelp', yelpHandler);
 // app.get('/events', eventfulHandler);
 
 
-//callback functions
-
-
+// ======================== CALLBACK FUNCTIONS =========================
 function locationCallback (request, response) {
   let city = request.query.city;
-  let SQL = `SELECT * FROM locations WHERE searchquery='${city}';`;
 
-  client.query(SQL)
-    .then(results => {
-      if (results.rowCount){
-        response.send(results.rows[0]);
-      } else {
-        try {
-          let key = process.env.GEOCODE_API_KEY;
-          let url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
-
-          superagent.get(url)
-            .then( data => {
-              const geoData = data.body[0];
-              const location = new Location(city, geoData);
-              let {search_query, formatted_query, latitude, longitude} = location;
-              let apiToSQL = `INSERT INTO locations (searchquery, formattedquery, latitude, longitude) VALUES ('${search_query}','${formatted_query}', '${latitude}', '${longitude}')`;
-              client.query(apiToSQL);
-              response.send(location);
-            })
-            .catch( () => {
-              errorHandler('location broke', request, response);
-            });
-        }
-        catch(error){
-          errorHandler('Error 500! Something has gone wrong with the website server!', request, response);
-        }
-      }
-    });
+  location.getLocationData(city)
+    .then( data => sendJson(data, response))
+    .catch((error) => errorHandler(error, request, response));
 }
 
 function yelpHandler(request, response) {
@@ -68,7 +46,6 @@ function yelpHandler(request, response) {
     superagent.get(url)
       .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
       .then(data => {
-        // console.log(data.body.businesses);
         const yelpObject = data.body.businesses.map( obj => new Business(obj) );
         response.send(yelpObject);
       });
@@ -78,7 +55,6 @@ function yelpHandler(request, response) {
 }
 
 function movieHandler(request, response) {
-  // let movieObject;
   const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&query=seattle`;
   try {
     superagent.get(url)
@@ -108,26 +84,18 @@ function weatherHandler(request, response) {
 }
 
 
-// function eventfulHandler(request, response) {
-
-//   // console.log(request.query);
-//   let url = `http://api.eventful.com/json/events/search?location=${search_query}&app_key=${process.env.EVENTFUL_API_KEY}`;
-//   superagent.get(url)
-//     .then(data => {
-//       let eventfulData = JSON.parse(data.text).events.event;
-//       console.log(eventfulData);
-//       const eventsArr = eventfulData.map(value => new Event(value));
-//       response.send(eventsArr);
-//     });
-// }
-
-// CONSTRUCTORS
-function Location(city, geoData){
-  this.searchQuery = city;
-  this.formattedQuery = geoData.display_name;
-  this.latitude = geoData.lat;
-  this.longitude = geoData.lon;
+function eventfulHandler(request, response) {
+  let url = `http://api.eventful.com/json/events/search?location=${search_query}&app_key=${process.env.EVENTFUL_API_KEY}`;
+  superagent.get(url)
+    .then(data => {
+      let eventfulData = JSON.parse(data.text).events.event;
+      console.log(eventfulData);
+      const eventsArr = eventfulData.map(value => new Event(value));
+      response.send(eventsArr);
+    });
 }
+
+// ======================= CONSTRUCTORS ======================
 
 function Weather(day) {
   this.forecast = day.summary;
@@ -159,13 +127,17 @@ function Business (yelpData){
   this.url = yelpData.url;
 }
 
-//helper functions (error catching)
+// ====================== HELPER FUNCTIONS =======================
 function errorHandler(error, request, response) {
   response.status(500).send(error);
 }
 
+function sendJson(data, response){
+  response.status(200).send(data);
+}
 
-//server "listener"
+
+// ====================== SERVER "LISTENER" ========================
 client.connect()
   .then(() => {
     app.listen(PORT, () => console.log(`Server up on port ${PORT}`));
