@@ -21,6 +21,7 @@ app.get('/', (request, response) => {
 
 app.get('/location', locationCallback);
 app.get('/movies', movieHandler);
+app.get('/yelp', yelpHandler);
 // app.get('/weather', weatherHandler);
 // app.get('/events', eventfulHandler);
 
@@ -34,7 +35,7 @@ function locationCallback (request, response) {
 
   client.query(SQL)
     .then(results => {
-      if (results.rows.length > 0){
+      if (results.rowCount){
         response.send(results.rows[0]);
       } else {
         try {
@@ -59,6 +60,21 @@ function locationCallback (request, response) {
         }
       }
     });
+}
+
+function yelpHandler(request, response) {
+  const url = `https://api.yelp.com/v3/businesses/search?location=Seattle`;
+  try {
+    superagent.get(url)
+      .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
+      .then(data => {
+        // console.log(data.body.businesses);
+        const yelpObject = data.body.businesses.map( obj => new Business(obj) );
+        response.send(yelpObject);
+      });
+  } catch(error) {
+    errorHandler(error, request, response);
+  }
 }
 
 function movieHandler(request, response) {
@@ -133,6 +149,14 @@ function Movie (movieData){
   this.image_url = `https://image.tmdb.org/t/p/w500${movieData.poster_path}`;
   this.popularity = movieData.popularity;
   this.released_on = movieData.release_date;
+}
+
+function Business (yelpData){
+  this.name = yelpData.name;
+  this.image_url = yelpData.image_url;
+  this.price = yelpData.price;
+  this.rating = yelpData.rating;
+  this.url = yelpData.url;
 }
 
 //helper functions (error catching)
