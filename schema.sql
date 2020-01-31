@@ -1,11 +1,11 @@
-DROP TABLE explorer, weather, eventful;
+DROP TABLE locations, weather, eventful;
 
-CREATE TABLE IF NOT EXISTS explorer (
+CREATE TABLE IF NOT EXISTS locations (
   id SERIAL PRIMARY KEY,
-  city VARCHAR(255),
+  searchquery VARCHAR(255),
   formattedquery VARCHAR(255),
-  lat NUMERIC(10, 7),
-  long NUMERIC(10, 7)
+  latitude NUMERIC(10, 7),
+  longitude NUMERIC(10, 7)
 );
 
 CREATE TABLE IF NOT EXISTS weather (

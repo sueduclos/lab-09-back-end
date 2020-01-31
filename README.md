@@ -2,17 +2,27 @@
 
 Number and name of feature: #1 Movies
 
-Estimate of time needed to complete: 1 hour 
+Estimate of time needed to complete: 1 hour
 
-Start time: 7:03pm 
+Start time: 7:03pm
 
-Finish time: 9:21pm 
+Finish time: 9:21pm
 
 Actual time needed to complete: 2 hours 18 minutes
 
+Number and name of feature: #2 Yelp
+
+Estimate of time needed to complete: 1.5 hour
+
+Start time: 7:00pm
+
+Finish time: 8:00pm
+
+Actual time needed to complete: 1 hour
+
 # back_end_testing
-**Author**: 
-**Version**: 1.0.0 
+**Author**:
+**Version**: 1.0.0
 
 ## Overview
 
@@ -20,7 +30,7 @@ As a user, I want more info about a specified city, including a map, weather, mo
 
 ## Getting Started
 
-Clone this repo: 
+Clone this repo:
 
 ## Architecture
 
