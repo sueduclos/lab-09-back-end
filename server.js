@@ -1,71 +1,35 @@
 'use strict';
 
-require('dotenv').config();
-
 // ======================== PACKAGES =========================
+
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
-const pg = require('pg');
 
 const PORT = process.env.PORT;
 const app = express();
 app.use(cors());
 
-const client = new pg.Client(process.env.DATABASE_URL);
-client.on('error', err => console.error(err));
+// ======================== MODULES ==========================
+
+const client = require('./modules/Client.js');
+const locationCallback = require('./modules/Location.js');
 
 
 // ======================== ROUTES ============================
 
 app.get('/', (request, response) => {
-  response.send(`It's alllllive!`);
+  response.send(`Welcome Home!`);
 });
 
-const location = require('./modules/Location.js');
-
 app.get('/location', locationCallback);
-app.get('/movies', movieHandler);
-app.get('/yelp', yelpHandler);
 // app.get('/weather', weatherHandler);
-// app.get('/events', eventfulHandler);
+// app.get('/movies', movieHandler);
+// app.get('/yelp', yelpHandler);
 
 
 // ======================== CALLBACK FUNCTIONS =========================
-function locationCallback (request, response) {
-  let city = request.query.city;
-
-  location.getLocationData(city)
-    .then( data => sendJson(data, response))
-    .catch((error) => errorHandler(error, request, response));
-}
-
-function yelpHandler(request, response) {
-  const url = `https://api.yelp.com/v3/businesses/search?location=Seattle`;
-  try {
-    superagent.get(url)
-      .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
-      .then(data => {
-        const yelpObject = data.body.businesses.map( obj => new Business(obj) );
-        response.send(yelpObject);
-      });
-  } catch(error) {
-    errorHandler(error, request, response);
-  }
-}
-
-function movieHandler(request, response) {
-  const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&query=seattle`;
-  try {
-    superagent.get(url)
-      .then(data => {
-        const movieObject = data.body.results.map( obj => new Movie(obj) );
-        response.send(movieObject);
-      });
-  } catch(error) {
-    errorHandler(error, request, response);
-  }
-}
 
 function weatherHandler(request, response) {
   let latitude = request.query.latitude;
@@ -83,16 +47,31 @@ function weatherHandler(request, response) {
     });
 }
 
+function movieHandler(request, response) {
+  const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&query=seattle`;
+  try {
+    superagent.get(url)
+      .then(data => {
+        const movieObject = data.body.results.map( obj => new Movie(obj) );
+        response.send(movieObject);
+      });
+  } catch(error) {
+    errorHandler(error, request, response);
+  }
+}
 
-function eventfulHandler(request, response) {
-  let url = `http://api.eventful.com/json/events/search?location=${search_query}&app_key=${process.env.EVENTFUL_API_KEY}`;
-  superagent.get(url)
-    .then(data => {
-      let eventfulData = JSON.parse(data.text).events.event;
-      console.log(eventfulData);
-      const eventsArr = eventfulData.map(value => new Event(value));
-      response.send(eventsArr);
-    });
+function yelpHandler(request, response) {
+  const url = `https://api.yelp.com/v3/businesses/search?location=Seattle`;
+  try {
+    superagent.get(url)
+      .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
+      .then(data => {
+        const yelpObject = data.body.businesses.map( obj => new Business(obj) );
+        response.send(yelpObject);
+      });
+  } catch(error) {
+    errorHandler(error, request, response);
+  }
 }
 
 // ======================= CONSTRUCTORS ======================
@@ -100,13 +79,6 @@ function eventfulHandler(request, response) {
 function Weather(day) {
   this.forecast = day.summary;
   this.time = new Date(day.time * 1000).toDateString();
-}
-
-function Event(object) {
-  this.link = object.url;
-  this.name = object.title;
-  this.event_date = object.start_time;
-  this.summary = object.description;
 }
 
 function Movie (movieData){
@@ -132,13 +104,9 @@ function errorHandler(error, request, response) {
   response.status(500).send(error);
 }
 
-function sendJson(data, response){
-  response.status(200).send(data);
+// ====================== SERVER "LISTENER" ========================
+function startServer() {
+  app.listen(process.env.PORT, () => console.log(`Server up on port ${process.env.PORT}`));
 }
 
-
-// ====================== SERVER "LISTENER" ========================
-client.connect()
-  .then(() => {
-    app.listen(PORT, () => console.log(`Server up on port ${PORT}`));
-  });
+startServer();

@@ -1,45 +1,34 @@
 'use strict';
 
-const express = require('express');
-const cors = require('cors');
+const client = require('./Client.js');
 const superagent = require('superagent');
-const pg = require('pg');
 
-const PORT = process.env.PORT;
-const app = express();
-app.use(cors());
-
-const client = new pg.Client(process.env.DATABASE_URL);
-client.on('error', err => console.error(err));
-
-
-const location = {};
-
-location.getLocationData = function(city) {
+function locationCallback (request, response) {
+  let city = request.query.city;
   let SQL = `SELECT * FROM locations WHERE searchquery='${city}';`;
 
-  return client.query(SQL)
-    .then( results => {
+  client.query(SQL)
+    .then(results => {
       if (results.rowCount){
-        return results.rows[0];
+        response.status(200).json(results.rows[0]);
       } else {
         let key = process.env.GEOCODE_API_KEY;
         let url = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
 
         return superagent.get(url)
-          .then( data => storeLocation(city, data.body));
+          .then( data => {
+            const geoData = data.body[0];
+            const location = new Location(city, geoData);
+            let {search_query, formatted_query, latitude, longitude} = location;
+            let apiToSQL = `INSERT INTO locations (searchquery, formattedquery, latitude, longitude) VALUES ('${search_query}','${formatted_query}', '${latitude}', '${longitude}')`;
+            return client.query(apiToSQL)
+              .then( () => {
+                response.status(200).json(location);
+              });
+          });
       }
-    });
-};
-
-function storeLocation(city, data){
-  const location = new Location(city, data[0]);
-
-  let apiToSQL = `INSERT INTO locations (searchquery, formattedquery, latitude, longitude) VALUES ('${search_query}','${formatted_query}', '${latitude}', '${longitude}') RETURNING *;`;
-
-  let {search_query, formatted_query, latitude, longitude} = location;
-  return client.query(apiToSQL, location)
-    .then( results => results.rows[0]);
+    })
+    .catch(console.error());
 }
 
 function Location(city, geoData){
@@ -49,9 +38,4 @@ function Location(city, geoData){
   this.longitude = geoData.lon;
 }
 
-module.exports = location;
-
-client.connect()
-  .then(() => {
-    app.listen(PORT, () => console.log(`Server up on port ${PORT}`));
-  });
+module.exports = locationCallback;
