@@ -14,8 +14,9 @@ app.use(cors());
 
 const client = require('./modules/Client.js');
 const locationCallback = require('./modules/Location.js');
-const movieHandler = require('./modules/Movies');
-const yelpHandler = require('./modules/Yelp');
+const weatherHandler = require('./modules/Weather.js');
+const movieHandler = require('./modules/Movies.js');
+const yelpHandler = require('./modules/Yelp.js');
 
 
 // ======================== ROUTES ============================
@@ -25,35 +26,10 @@ app.get('/', (request, response) => {
 });
 
 app.get('/location', locationCallback);
-// app.get('/weather', weatherHandler);
+app.get('/weather', weatherHandler);
 app.get('/movies', movieHandler);
 app.get('/yelp', yelpHandler);
 
-
-// ======================== CALLBACK FUNCTIONS =========================
-
-function weatherHandler(request, response) {
-  let latitude = request.query.latitude;
-  let longitude = request.query.longitude;
-  const url = `https://api.darksky.net/forecast/${process.env.DARKSKY_API_KEY}/${latitude},${longitude}`;
-  superagent.get(url)
-    .then(data => {
-      const weatherSummaries = data.body.daily.data.map(day => {
-        return new Weather(day);
-      });
-      response.send(weatherSummaries);
-    })
-    .catch(() => {
-      errorHandler('not today satan.', request, response);
-    });
-}
-
-// ======================= CONSTRUCTORS ======================
-
-function Weather(day) {
-  this.forecast = day.summary;
-  this.time = new Date(day.time * 1000).toDateString();
-}
 
 // ====================== HELPER FUNCTIONS =======================
 function errorHandler(error, request, response) {

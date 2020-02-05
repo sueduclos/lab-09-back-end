@@ -14,7 +14,7 @@ function movieHandler(request, response) {
       })
       .catch(console.error());
   } catch(error) {
-    console.error();
+    errorHandler(error, request, response);
   }
 }
 
@@ -26,6 +26,10 @@ function Movie (movieData){
   this.image_url = `https://image.tmdb.org/t/p/w500${movieData.poster_path}`;
   this.popularity = movieData.popularity;
   this.released_on = movieData.release_date;
+}
+
+function errorHandler(error, request, response) {
+  response.status(500).send(error);
 }
 
 module.exports = movieHandler;
