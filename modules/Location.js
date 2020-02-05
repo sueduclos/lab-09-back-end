@@ -24,7 +24,8 @@ function locationCallback (request, response) {
             return client.query(apiToSQL)
               .then( () => {
                 response.status(200).json(location);
-              });
+              })
+              .catch(console.error());
           });
       }
     })
